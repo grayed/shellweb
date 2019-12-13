@@ -11,3 +11,10 @@ ShellWeb relies upon the following external commands outside POSIX:
     * [[ ... ]];
     * "\r" being interpreted by 'echo' command.
   * [nc(1)](https://man.openbsd.org/nc.1), OpenBSD netcat.
+
+Coding guide
+------------------------------
+
+Indentation is done via tabs, 8 chars size.
+
+Any non-portable idiom/program used must be documented in this file.
