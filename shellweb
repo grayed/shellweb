@@ -1,19 +1,4 @@
 #!/bin/ksh
-#
-# Non-POSIX features used:
-#   * co-processes;
-#   * closing file descriptors ("&-")
-#   * [[ ... ]]
-#   * "\r" interpretation by echo command
-#
-# TODO:
-#   * Content-Range support
-#   * Better error pages, CSS?
-#   * Reverse proxy mode
-#   * If-Mofified-Since support
-#   * Content-Disposition
-#   * config file
-#   * (F)CGI support
 
 set -e
 
