@@ -6,11 +6,13 @@ ShellWeb is a minimalistic HTTP server, that's slowly developed during education
 ShellWeb relies upon the following external commands outside POSIX:
 
   * OpenBSD version of [Korn shell](https://man.openbsd.org/ksh.1), in particular:
-    * suprocesses;
+    * subprocesses;
     * closing file descriptors via &-;
     * [[ ... ]];
     * "\r" being interpreted by 'echo' command.
   * [nc(1)](https://man.openbsd.org/nc.1), OpenBSD netcat.
+
+Many other Bourne-style shells offer similar functionality, so ShellWeb should work there as well. Different netcat implementations should work as well.
 
 Coding guide
 ------------------------------
