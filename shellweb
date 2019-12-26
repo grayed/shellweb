@@ -49,6 +49,12 @@ validate_and_send() {
                 senderr 400
 		return
 	fi
+	
+	if [[ "$1" == *.cgi* ]]; then
+		cgi "$1"
+		return
+	fi
+	
         local path="${root}$1"
 	path=$(readlink -f "$path" || true)
 	  if [ -z "$path" ]; then
@@ -69,6 +75,36 @@ validate_and_send() {
         fi
 }
 
+export_cgi() {
+
+	export SERVER_SOFTWARE="shellweb3"
+	export SERVER_NAME=
+	export GATEWAY_INTERFACE="CGI/1.1"
+	export SERVER_PROTOCOL="HTTP/1.1"
+	export SERVER_PORT="$port"
+	export REQUEST_METHOD=
+	export PATH_INFO=
+	export PATH_TRANSLATED=
+	export SCRIPT_NAME=
+	export QUERY_STRING=
+	export REMOTE_HOST=
+	export REMOTE_ADDR=
+	export AUTH_TYPE=
+	export REMOTE_USER=
+	export REMOTE_IDENT=
+	export CONTENT_TYPE=
+	export CONTENT_LENGTH=
+}
+
+cgi() {
+	export_cgi
+	QUERY_STRING=$(echo "$1" | sed 's/^.*\?//')
+	PATH_INFO=$(echo "$1" | sed 's/^.*\.cgi.*\?//')
+	REQUEST_METHOD="GET"
+	SCRIPT_NAME=$(echo "$1" | sed 's/^\(.*.cgi\).*$/\1/')
+	sent=true
+	"${root}$SCRIPT_NAME"
+}
 # It's okay to call this routine even after senderr(), see $sent
 sendfile() {
         $sent && return 0
