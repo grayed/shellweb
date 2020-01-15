@@ -50,6 +50,10 @@ validate_and_send() {
 		return
 	fi
         local path="${root}$1"
+	if [ -h "$path" ]; then
+                sym_link "$path"
+                return
+        fi
 	path=$(readlink -f "$path" || true)
 	  if [ -z "$path" ]; then
 		# hard symlink error: cycle or smth. like that
@@ -67,6 +71,21 @@ validate_and_send() {
 	else
 		sendfile "$1"
         fi
+}
+
+sym_link() {
+    local path=$(readlink -f "$1" || true)
+    if [ "x${path#$root}" = "x${path}" ]; then
+        senderr 404
+    else
+        sent=true
+        echo "HTTP/1.1 301 Moved Permanently\r"
+        echo "Date: $(date)\r"
+        echo "Location: ${path#$root}"
+        echo "Content-Length: 0\r"
+        echo "Content-Type: text/html\r"
+        echo "\r"
+    fi
 }
 
 # It's okay to call this routine even after senderr(), see $sent
