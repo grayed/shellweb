@@ -3,6 +3,7 @@
 set -e
 
 verbose=false
+auth_enabled=false
 if [ `id -u` = 0 ]; then
         root=/var/www
         port=80
@@ -12,11 +13,12 @@ else
 fi
 
 usage() {
-        echo "usage: ${0##*/} [-v] [-d rootdir] [-p port]" >&2
+        echo "usage: ${0##*/} [-av] [-d rootdir] [-p port]" >&2
         exit 1
 }
 
-while getopts "d:p:v" OPT; do case $OPT in
+while getopts "ad:p:v" OPT; do case $OPT in
+        a)      auth_enabled=true;;
         d)      root=$OPTARG;;
         p)      port=$OPTARG;;
         v)      verbose=true;;
@@ -26,6 +28,28 @@ shift $((OPTIND - 1))
 
 $verbose && echo "root directory is $root" >&2
 
+pathToFile="$(pwd)/users.txt"
+decodeBase64(){
+    cmd=$(echo "$1" | openssl enc -base64 -d)
+}
+
+isInUsers(){
+    decodeBase64 $1
+    decodedData=$cmd
+    user="$(echo $decodedData | cut -f1 -d:)"
+    password="$(echo $decodedData | cut -f2 -d:)"
+    isInFile=false
+
+    while read -r data1 data2
+    do
+        if [[ $user == $data1 && $password == $data2 ]]; then
+            isInFile=true
+            break
+        fi
+    done < "$pathToFile"
+}
+
+
 # It's okay to call this routine multiple times, see $sent
 senderr() {
         $sent && return 0
@@ -33,6 +57,7 @@ senderr() {
         local text
         case $1 in
         400)    text="Bad request";;
+        401)    text="Unauthorized";;
         403)    text="Not allowed";;
         404)    text="Not found";;
         *)      text="Server error"; set -- 500;;
@@ -41,6 +66,10 @@ senderr() {
         sent=true
         echo "HTTP/1.0 $1 $text\r"
         echo "Date: $(date)\r"
+	if [[ $1 == 401 ]]; then
+            echo "WWW-Authenticate: Basic realm=Access to staging site\r"
+        fi
+
         echo "\r"
 }
 
@@ -203,14 +232,12 @@ cat <<EOF
 <body>
 <h1>Index of $(html_escape "$1")</h1><hr><table>
 EOF
-
 		if [ "X${1%/}" != X ]; then
 			parent=${1%%*(/)}
 			parent=${parent%/*}
 			test -n "$parent" || parent=/
 			echo "<a href=\"$parent\">../</a><br />"
 		fi
-
 		local mode links owner group size mon day time year name
 		local type
 		ls -lT "$root$1" | tail -n +2 | while read mode links owner group size mon day time year name; do
@@ -225,7 +252,6 @@ EOF
 			fi
 			file_info "$name" "${year}-${mon}-${day} $time" "$size" "${type}"
 		done
-
 		echo "</table><hr></body>"
 		echo "</html>"
 	)
@@ -250,21 +276,38 @@ while true; do
         $NC |&
         $verbose && echo "watiting for new connection on port $port" >&2
         ncpid=$!
+        hasLogged=false
         while ! $sent && read -p v1 v2 v3; do
                 if [ -z "$file" ]; then
                         file=$v2
                         [[ $v1 = GET ]] || senderr 400
                         [[ $v3 = $(echo "HTTP/1.[01]\r") ]] || senderr 400
+
+                elif $auth_enabled && [[ $v1 == "Authorization:" ]]; then
+                	isInUsers $v3
+                	if [[ $v2 == "Basic" && $isInFile == true ]]; then
+                    		hasLogged=true
+                	fi
+
                 elif [[ $v1 = $(echo "\r") && -z $v2 ]]; then
                         # empty line
                         if [ -n "$file" ]; then
-				$verbose && echo "$file is requested" >&2
-				validate_and_send "$file"
+
+                            if [[ $hasLogged == true ]]; then
+
+                                $verbose && echo "$file is requested" >&2
+                                        validate_and_send "$file"
+                            else
+
+                                senderr 401
+                            fi
+
                         else
                                 senderr 400
                         fi
 			file=
 			sent=false
+           	hasLogged=false
                 # else ignore all headers
                 fi
         done >&p
