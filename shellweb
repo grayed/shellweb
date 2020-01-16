@@ -2,8 +2,6 @@
 
 set -e
 
-verbose=false
-auth_enabled=false
 if [ `id -u` = 0 ]; then
 	root=/var/www
 	port=80
