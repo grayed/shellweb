@@ -1,8 +1,7 @@
-  * Unit test(s)
+  * More unit tests
   * Content-Range support
   * Better error pages, CSS?
   * Reverse proxy mode
   * If-Mofified-Since support
   * Content-Disposition
   * config file
-  * (F)CGI support
