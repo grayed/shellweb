@@ -41,6 +41,7 @@ authenticate() {
 
 	while read -r data1 data2; do
 		if [[ $user == $data1 && $password == $data2 ]]; then
+			$verbose && echo "logged in as $user" >&2
 			return 0
 		fi
 	done < "$auth_file"
@@ -320,6 +321,7 @@ while true; do
 					$verbose && echo "$file is requested" >&2
 					validate_and_send "$file"
 				else
+					$verbose && echo "not authenticated" >&2
 					senderr 401
 				fi
 			else
