@@ -29,7 +29,7 @@ shift $((OPTIND - 1))
 $verbose && echo "root directory is $root" >&2
 
 decode_base64() {
-	printf "%s" "$1" | openssl enc -base64 -d
+	printf "%s\n" "$1" | openssl enc -base64 -d
 }
 
 authenticate() {
