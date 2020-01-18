@@ -298,6 +298,7 @@ while true; do
 	auth_passed=false
 	keep_conn=false
 	while ! $sent && read -p v1 v2 v3; do
+		header=$(echo "$v1" | tr A-Z a-z)
 		if [ -z "$file" ]; then
 			# parsing first line
 			file=$v2
@@ -306,15 +307,15 @@ while true; do
 			[[ $v3 = HTTP/1.1? ]] && keep_conn=true
 
 		# authentication handling
-		elif $auth_enabled && [[ $v1 == "Authorization:" ]]; then
+		elif $auth_enabled && [[ $header == "authorization:" ]]; then
 			if [[ $v2 == "Basic" ]] && authenticate "$v3"; then
 				auth_passed=true
 			fi
 
-		elif [[ $v1 == "Connection:" && $v2 == $(printf "close\r") ]]; then
+		elif [[ $header == "connection:" && $v2 == $(printf "close\r") ]]; then
 			keep_conn=false
 
-		elif [[ $v1 = $(printf "\r\n") && -z $v2 ]]; then
+		elif [[ $header = $(printf "\r\n") && -z $v2 ]]; then
 			# empty line (end of headers)
 			if [ -n "$file" ]; then
 				if ! $auth_enabled || $auth_passed; then
