@@ -292,12 +292,14 @@ while true; do
 	$verbose && echo "watiting for new connection on port $port" >&2
 	ncpid=$!
 	auth_passed=false
+	keep_conn=false
 	while ! $sent && read -p v1 v2 v3; do
 		if [ -z "$file" ]; then
 			# parsing first line
 			file=$v2
 			[[ $v1 = GET ]] || senderr 400
 			[[ $v3 = $(echo "HTTP/1.[01]\r") ]] || senderr 400
+			[[ $v3 = HTTP/1.1? ]] && keep_conn=true
 
 		# authentication handling
 		elif $auth_enabled && [[ $v1 == "Authorization:" ]]; then
@@ -305,12 +307,15 @@ while true; do
 				auth_passed=true
 			fi
 
+		elif [[ $v1 == "Connection:" && $v2 == $(echo "close\r") ]]; then
+			keep_conn=false
+
 		elif [[ $v1 = $(echo "\r") && -z $v2 ]]; then
 			# empty line (end of headers)
 			if [ -n "$file" ]; then
 				if ! $auth_enabled || $auth_passed; then
 					$verbose && echo "$file is requested" >&2
-						validate_and_send "$file"
+					validate_and_send "$file"
 				else
 					senderr 401
 				fi
@@ -318,8 +323,10 @@ while true; do
 				senderr 400
 			fi
 			file=
-			sent=false
 			auth_passed=false
+			if $keep_conn; then
+				sent=false
+			fi
 		# else ignore all headers
 		fi
 	done >&p
