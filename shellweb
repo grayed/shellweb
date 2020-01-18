@@ -289,7 +289,7 @@ while true; do
 	file=
 	sent=false
 	$NC |&
-	$verbose && echo "watiting for new connection on port $port" >&2
+	$verbose && echo "waiting for new connection on port $port" >&2
 	ncpid=$!
 	auth_passed=false
 	keep_conn=false
