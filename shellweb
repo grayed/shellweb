@@ -64,11 +64,14 @@ senderr() {
 	sent=true
 	printf "HTTP/1.0 %s %s\r\n" "$1" "$text"
 	printf "Date: %s\r\n" "$(env LC_ALL=en_US.UTF-8 date)"
+	printf "Connection: close\r\n"
 	if [[ $1 == 401 ]]; then
 		printf "WWW-Authenticate: Basic realm=ShellWeb\r\n"
 	fi
 
 	printf "\r\n"
+
+	keep_conn=false
 }
 
 validate_and_send() {
