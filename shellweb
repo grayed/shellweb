@@ -30,23 +30,23 @@ $verbose && echo "root directory is $root" >&2
 
 pathToFile="$(pwd)/users.txt"
 decodeBase64(){
-    cmd=$(echo "$1" | openssl enc -base64 -d)
+	cmd=$(echo "$1" | openssl enc -base64 -d)
 }
 
-isInUsers(){
-    decodeBase64 $1
-    decodedData=$cmd
-    user="$(echo $decodedData | cut -f1 -d:)"
-    password="$(echo $decodedData | cut -f2 -d:)"
-    isInFile=false
+isInUsers() {
+	decodeBase64 $1
+	decodedData=$cmd
+	user="$(echo $decodedData | cut -f1 -d:)"
+	password="$(echo $decodedData | cut -f2 -d:)"
+	isInFile=false
 
-    while read -r data1 data2
-    do
-        if [[ $user == $data1 && $password == $data2 ]]; then
-            isInFile=true
-            break
-        fi
-    done < "$pathToFile"
+	while read -r data1 data2
+	do
+	if [[ $user == $data1 && $password == $data2 ]]; then
+		isInFile=true
+		break
+	fi
+	done < "$pathToFile"
 }
 
 
@@ -78,17 +78,13 @@ validate_and_send() {
                 senderr 400
 		return
 	fi
-	
-	if [[ "$1" == *.cgi* ]]; then
-		cgi "$1"
-		return
-	fi
-	
+
         local path="${root}$1"
 	if [ -h "$path" ]; then
     		sym_link "$path"
     		return
 	fi
+
 	path=$(readlink -f "$path" || true)
 	  if [ -z "$path" ]; then
 		# hard symlink error: cycle or smth. like that
@@ -103,23 +99,42 @@ validate_and_send() {
                 senderr 403
         elif [ -d "$path" ]; then
 		index "$1"
+	elif [[ "$1" == *.cgi* ]]; then
+		cgi "$1"
 	else
 		sendfile "$1"
         fi
 }
 
-export_cgi() {
+sym_link() {
+	local path=$(readlink -f "$1" || true)
+	if [ "x${path#$root}" = "x${path}" ]; then
+		senderr 404
+		return
+	fi
 
+	sent=true
+	echo "HTTP/1.1 301 Moved Permanently\r"
+	echo "Date: $(date)\r"
+	echo "Location: ${path#$root}"
+	echo "Content-Length: 0\r"
+	echo "Content-Type: text/html\r"
+	echo "\r"
+}
+
+run_cgi() (
 	export SERVER_SOFTWARE="shellweb3"
 	export SERVER_NAME=
 	export GATEWAY_INTERFACE="CGI/1.1"
 	export SERVER_PROTOCOL="HTTP/1.1"
 	export SERVER_PORT="$port"
-	export REQUEST_METHOD=
-	export PATH_INFO=
+
+	export QUERY_STRING=$(echo "$1" | sed 's/^.*\?//')
+	export PATH_INFO=$(echo "$1" | sed 's/^.*\.cgi.*\?//')
+	export REQUEST_METHOD="GET"
+	export SCRIPT_NAME=$(echo "$1" | sed 's/^\(.*.cgi\).*$/\1/')
+
 	export PATH_TRANSLATED=
-	export SCRIPT_NAME=
-	export QUERY_STRING=
 	export REMOTE_HOST=
 	export REMOTE_ADDR=
 	export AUTH_TYPE=
@@ -127,30 +142,15 @@ export_cgi() {
 	export REMOTE_IDENT=
 	export CONTENT_TYPE=
 	export CONTENT_LENGTH=
-sym_link() {
-    local path=$(readlink -f "$1" || true)
-    if [ "x${path#$root}" = "x${path}" ]; then
-        senderr 404
-    else
-        sent=true
-        echo "HTTP/1.1 301 Moved Permanently\r"
-        echo "Date: $(date)\r"
-        echo "Location: ${path#$root}"
-        echo "Content-Length: 0\r"
-        echo "Content-Type: text/html\r"
-        echo "\r"
-    fi
-}
+
+	"${root}$SCRIPT_NAME"
+)
 
 cgi() {
-	export_cgi
-	QUERY_STRING=$(echo "$1" | sed 's/^.*\?//')
-	PATH_INFO=$(echo "$1" | sed 's/^.*\.cgi.*\?//')
-	REQUEST_METHOD="GET"
-	SCRIPT_NAME=$(echo "$1" | sed 's/^\(.*.cgi\).*$/\1/')
 	sent=true
-	"${root}$SCRIPT_NAME"
+	run_cgi
 }
+
 # It's okay to call this routine even after senderr(), see $sent
 sendfile() {
         $sent && return 0
