@@ -29,15 +29,15 @@ shift $((OPTIND - 1))
 $verbose && echo "root directory is $root" >&2
 
 decode_base64() {
-	echo "$1" | openssl enc -base64 -d
+	printf "%s" "$1" | openssl enc -base64 -d
 }
 
 authenticate() {
 	local decoded user password
 
 	decoded="$(decode_base64 "$1")"
-	user="$(echo "$decoded" | cut -f1 -d:)"
-	password="$(echo "$decoded" | cut -f2 -d:)"
+	user="$(printf "%s\n" "$decoded" | cut -f1 -d:)"
+	password="$(printf "%s\n" "$decoded" | cut -f2 -d:)"
 
 	while read -r data1 data2; do
 		if [[ $user == $data1 && $password == $data2 ]]; then
@@ -62,13 +62,13 @@ senderr() {
         esac
 
         sent=true
-        echo "HTTP/1.0 $1 $text\r"
-        echo "Date: $(env LC_ALL=en_US.UTF-8 date)\r"
+        printf "HTTP/1.0 %s %s\r\n" "$1" "$text"
+	printf "Date: %s\r\n" "$(env LC_ALL=en_US.UTF-8 date)"
 	if [[ $1 == 401 ]]; then
-            echo "WWW-Authenticate: Basic realm=Access to staging site\r"
+            printf "WWW-Authenticate: Basic realm=Access to staging site\r\n"
         fi
 
-        echo "\r"
+        printf "\r\n"
 }
 
 validate_and_send() {
@@ -112,12 +112,12 @@ sym_link() {
 	fi
 
 	sent=true
-	echo "HTTP/1.1 301 Moved Permanently\r"
-	echo "Date: $(env LC_ALL=en_US.UTF-8 date)\r"
-	echo "Location: ${path#$root}"
-	echo "Content-Length: 0\r"
-	echo "Content-Type: text/html\r"
-	echo "\r"
+	printf "HTTP/1.1 301 Moved Permanently\r\n"
+	printf "Date: %s\r\n" "$(env LC_ALL=en_US.UTF-8 date)"
+	printf "Location: \r\n" "${path#$root}"
+	printf "Content-Length: 0\r\n"
+	printf "Content-Type: text/html\r\n"
+	printf "\r\n"
 }
 
 run_cgi() (
@@ -127,10 +127,10 @@ run_cgi() (
 	export SERVER_PROTOCOL="HTTP/1.1"
 	export SERVER_PORT="$port"
 
-	export QUERY_STRING=$(echo "$1" | sed 's/^.*\?//')
-	export PATH_INFO=$(echo "$1" | sed 's/^.*\.cgi.*\?//')
+	export QUERY_STRING=$(printf "%s\n" "$1" | sed 's/^.*\?//')
+	export PATH_INFO=$(printf "%s\n" "$1" | sed 's/^.*\.cgi.*\?//')
 	export REQUEST_METHOD="GET"
-	export SCRIPT_NAME=$(echo "$1" | sed 's/^\(.*.cgi\).*$/\1/')
+	export SCRIPT_NAME=$(printf "%s\n" "$1" | sed 's/^\(.*.cgi\).*$/\1/')
 
 	export PATH_TRANSLATED=
 	export REMOTE_HOST=
@@ -157,11 +157,11 @@ sendfile() {
         local ct=$(file -bi "$root/$1") || { senderr 500; return 0; }
         local sz=$(ls -l "$root/$1" | awk '{print $5}') || { senderr 500; return 0; }
         sent=true
-        echo "HTTP/1.1 200 OK\r"
-        echo "Content-Type: $ct\r"
-        echo "Content-Length: $sz\r"
-        echo "Date: $(env LC_ALL=en_US.UTF-8 date)\r"
-        echo "\r"
+        printf "HTTP/1.1 200 OK\r\n"
+        printf "Content-Type: %s\r\n"	"$ct"
+        printf "Content-Length: %u\r\n"	"$sz"
+        printf "Date: %s\r\n"		"$(env LC_ALL=en_US.UTF-8 date)"
+        printf "\r\n"
         cat <&3
         exec 3<&-
 }
@@ -270,13 +270,13 @@ EOF
 		echo "</table><hr></body>"
 		echo "</html>"
 	)
-	sz=$(echo -n "$body" | wc -c)
+	sz=$(printf "%s" "$body" | wc -c)
 	
-	echo "HTTP/1.1 200 OK\r"
-	echo "Content-Type: text/html\r"
-	echo "Content-Length: $sz\r"
-	echo "\r"
-	echo -n "$body"
+	printf "HTTP/1.1 200 OK\r\n"
+	printf "Content-Type: text/html\r\n"
+	printf "Content-Length: %u\r\n"		"$sz"
+	printf "\r\n"
+	printf "%s" "$body"
 }
 
 NC=nc
@@ -298,7 +298,7 @@ while true; do
 			# parsing first line
 			file=$v2
 			[[ $v1 = GET ]] || senderr 400
-			[[ $v3 = $(echo "HTTP/1.[01]\r") ]] || senderr 400
+			[[ $v3 = $(printf "HTTP/1.[01]\r") ]] || senderr 400
 			[[ $v3 = HTTP/1.1? ]] && keep_conn=true
 
 		# authentication handling
@@ -307,10 +307,10 @@ while true; do
 				auth_passed=true
 			fi
 
-		elif [[ $v1 == "Connection:" && $v2 == $(echo "close\r") ]]; then
+		elif [[ $v1 == "Connection:" && $v2 == $(printf "close\r") ]]; then
 			keep_conn=false
 
-		elif [[ $v1 = $(echo "\r") && -z $v2 ]]; then
+		elif [[ $v1 = $(printf "\r\n") && -z $v2 ]]; then
 			# empty line (end of headers)
 			if [ -n "$file" ]; then
 				if ! $auth_enabled || $auth_passed; then

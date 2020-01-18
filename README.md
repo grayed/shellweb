@@ -9,7 +9,6 @@ ShellWeb relies upon the following external commands outside POSIX:
     * subprocesses;
     * closing file descriptors via &-;
     * [[ ... ]];
-    * "\r" being interpreted by 'echo' command.
   * [nc(1)](https://man.openbsd.org/nc.1), OpenBSD netcat.
 
 Many other Bourne-style shells offer similar functionality, so ShellWeb should work there as well. Different netcat implementations should work as well.
