@@ -63,7 +63,7 @@ senderr() {
 
         sent=true
         echo "HTTP/1.0 $1 $text\r"
-        echo "Date: $(date)\r"
+        echo "Date: $(env LC_ALL=en_US.UTF-8 date)\r"
 	if [[ $1 == 401 ]]; then
             echo "WWW-Authenticate: Basic realm=Access to staging site\r"
         fi
@@ -113,7 +113,7 @@ sym_link() {
 
 	sent=true
 	echo "HTTP/1.1 301 Moved Permanently\r"
-	echo "Date: $(date)\r"
+	echo "Date: $(env LC_ALL=en_US.UTF-8 date)\r"
 	echo "Location: ${path#$root}"
 	echo "Content-Length: 0\r"
 	echo "Content-Type: text/html\r"
