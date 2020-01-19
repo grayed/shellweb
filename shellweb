@@ -13,7 +13,7 @@ else
 fi
 
 usage() {
-	echo "usage: ${0##*/} [-av] [-d rootdir] [-p port]" >&2
+	echo "usage: ${0##*/} [-v] [-a authfile] [-d rootdir] [-p port]" >&2
 	exit 1
 }
 
@@ -25,6 +25,12 @@ while getopts "a:d:p:v" OPT; do case $OPT in
 	*)      usage;;
 esac; done
 shift $((OPTIND - 1))
+
+authfile=$(readlink -f -- "$authfile")
+if ! [ -r "$authfile" -a -f "$authfile" ]; then
+	echo "could not read file '$authfile'" >&2
+	exit 1
+fi
 
 $verbose && echo "root directory is $root" >&2
 
