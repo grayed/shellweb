@@ -1,0 +1,21 @@
+#!/bin/ksh
+#check for 200 response
+link=
+if [ $# -gt 0 ]; then
+	link="$1"
+else
+	link="/home.html"
+fi
+port=13245
+shellweb_cmd="$HOME/shellweb -p $port"
+trap 'pkill -u $(id -u) -f "$shellweb_cmd"; pkill -u $(id -u) -f nc' EXIT
+$shellweb_cmd &
+sleep 0.1 
+check="HTTP/1.1 200 OK"
+response=$(echo "GET $link HTTP/1.0\r\n\r" | \
+	 nc -w 1 127.0.0.1 $port | head -n 1 | tr -d '\r')
+if [ x"$response" = x"$check" ]; then
+	echo "OK ==> $0"
+else
+	echo "FAIL ==> $0" 
+fi
