@@ -1,23 +1,13 @@
 #!/bin/ksh
 #check for 404 response
-root="$HOME/www"
-link=
-if [ $# -gt 0 ]; then
-	link="$1"
-else
-	link=$(mktemp -u $root/XXXXXX)
-fi
 
-port=13245
-shellweb_cmd="$HOME/shellweb -p $port"
-trap 'pkill -u $(id -u) -f "$shellweb_cmd"; pkill -u $(id -u) -f nc' EXIT
-$shellweb_cmd -p 13245 &
-sleep 0.1 
+. ${0%/*}/common
+
+run_shellweb
+
+link=$(mktemp -u ${www}/XXXXXX)
+test ! $# -gt 0 || link=$1
 check="HTTP/1.0 404 Not found"
-response=$(echo "GET $link HTTP/1.0\r\n\r" | \
+response=$(printf "GET $link HTTP/1.0\r\n\r\n" | \
 	 nc -w 1 127.0.0.1 $port | head -n 1 | tr -d '\r')
-if [ x"$response" = x"$check" ]; then
-	echo "OK ==> $0"
-else
-	echo "FAIL ==> $0" 
-fi
+test x"$response" = x"$check" || fail "$response"
