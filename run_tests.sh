@@ -7,4 +7,5 @@ fi
 
 for t in $tests; do
 	sh "tests/test-${t}"
+	echo
 done
