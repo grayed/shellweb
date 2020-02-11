@@ -1,48 +1,20 @@
 #!/bin/ksh
 #check for equality
 
-trap_handler() {
-	pkill -u $(id -u) -f "$shellweb_cmd" 
-	pkill -u $(id -u) -f nc 
-	rm -f "$request" 
-	rm -f "$response" 
-}
+. ${0%/*}/common
 
-trap trap_handler EXIT
-
-port=13245
-root="$HOME/www"
-shellweb_cmd="$HOME/shellweb -p $port"
-
-file="$HOME/home.html"
-if [ $# -gt 0 ]; then
-	file="$1"
-else
-	file="$HOME/home.html"
-fi
-if [ ! -f "$file" ]; then
-	echo "FAIL ==> $0"
-	exit 1
-fi
-request=$(mktemp -p $root)
+file="./tests/home.html"
+test ! $# -gt 0 || file="$1"
+test -f "$file" || fail "$file is incorrect"
+run_shellweb
+request=$(mktemp -p $www)
 cp "$file" "$request"
 $shellweb_cmd &
-sleep 0.1
-response=$(mktemp -p $HOME)
-echo "GET /${request#$root} HTTP/1.0\r\n\r" | \
-	nc -w 1 127.0.0.1 $port | tr -d '\r' >> "$response"
+send="${request#$www}"
+printf "GET $send HTTP/1.0\r\n\r\n" | \
+	nc -w 1 127.0.0.1 $port | tr -d '\r'  >> "$response"
 header=$(head -n 1 $response)
 check="HTTP/1.1 200 OK"
-if [ x"$header" != x"$check" ]; then
-	echo "FAIL ==> $0"
-	exit 1
-fi
-
+test x"$header" = x"$check" || fail "$header"
 sed -i '1,/^$/ d' "$response"
-
-if  cmp -s "$request" "$response"; then
-	echo "OK ==> $0"
-else
-	echo "FAIL ==> $0"
-	exit 1
-fi
+cmp -s "$request" "$response" || fail "files don't match"
