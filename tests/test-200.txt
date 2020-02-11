@@ -8,6 +8,6 @@ test ! $# -gt 0 || link=$1
 
 run_shellweb
 check="HTTP/1.1 200 OK"
-response=$(printf "GET $link HTTP/1.0\r\n\r" | \
+response=$(printf "GET $link HTTP/1.0\r\n\r\n" | \
 	 nc -w 1 127.0.0.1 $port | head -n 1 | tr -d '\r')
 test x"$response" = x"$check" || fail "$response"
