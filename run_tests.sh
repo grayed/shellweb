@@ -6,6 +6,6 @@ else
 fi
 
 for t in $tests; do
-	sh "tests/test-${t}"
+	ksh "tests/test-${t}"
 	echo
 done
