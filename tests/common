@@ -1,0 +1,46 @@
+#!/bin/ksh
+set -e 
+failed=0
+
+workdir="$PWD"
+tmpdir=$(mktemp -d -p $workdir)
+
+port=13245
+www=$(mktemp -d -p $tmpdir)
+shellweb_cmd="${workdir}/shellweb -d $www -p $port"
+
+test_name=${0##*/test-}
+
+run_shellweb(){
+	$shellweb_cmd &
+	sleep 0.1
+	
+}
+
+kill_shellweb() {
+	pkill -u $(id -u) -f "$shellweb_cmd"
+	pkill -u $(id -u) -f nc
+}
+
+cleanup() {
+	rm -rf $tmpdir
+}
+
+fail() {
+	for msg in "$@"; do
+		failed=1
+		echo "FAIL in $test_name $msg"
+	done
+	return 1
+}
+
+finish() {
+	kill_shellweb || true
+	cleanup || true
+	test $failed -gt 0 || echo "$test_name ==> OK" 
+}
+
+trap 'finish' EXIT
+trap 'fail' ERR
+
+echo "test: $test_name"
