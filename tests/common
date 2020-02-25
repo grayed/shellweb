@@ -41,6 +41,5 @@ finish() {
 }
 
 trap 'finish' EXIT
-trap 'fail' ERR
 
 echo "test: $test_name"
