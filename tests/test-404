@@ -5,7 +5,7 @@
 
 run_shellweb
 
-link=$(mktemp -u ${www}/XXXXXX)
+link="${www}/XXXXXX"
 test ! $# -gt 0 || link=$1
 check="HTTP/1.0 404 Not found"
 response=$(printf "GET $link HTTP/1.0\r\n\r\n" | \
