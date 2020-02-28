@@ -13,7 +13,7 @@ test_name=${0##*/test-}
 
 run_shellweb(){
 	$shellweb_cmd &
-	sleep 0.1
+	sleep 1
 	
 }
 
