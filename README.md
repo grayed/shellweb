@@ -1,7 +1,10 @@
 ShellWeb
 ==============================
 
-ShellWeb is a minimalistic HTTP server, that's slowly developed during educational process in [Russian Technological University MIREA](https://www.mirea.ru/) as a part of Operating systems course.
+ShellWeb is a minimalistic HTTP server, that's slowly developed during
+educational process in
+[Russian Technological University MIREA](https://www.mirea.ru/)
+as a part of Operating systems course.
 
 ShellWeb relies upon the following external commands outside POSIX:
 
@@ -11,7 +14,8 @@ ShellWeb relies upon the following external commands outside POSIX:
     * [[ ... ]];
   * [nc(1)](https://man.openbsd.org/nc.1), OpenBSD netcat.
 
-Many other Bourne-style shells offer similar functionality, so ShellWeb should work there as well. Different netcat implementations should work as well.
+Many other Bourne-style shells offer similar functionality, so ShellWeb should
+work there as well. Different netcat implementations should work, too.
 
 Coding guide
 ------------------------------
