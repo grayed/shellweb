@@ -19,7 +19,7 @@ run_shellweb(){
 
 kill_shellweb() {
 	pkill -u $(id -u) -f "$shellweb_cmd"
-	pkill -u $(id -u) -f nc
+	pkill -u $(id -u) -x nc
 }
 
 cleanup() {
