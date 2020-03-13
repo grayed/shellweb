@@ -4,6 +4,7 @@ set -e
 
 verbose=false
 auth_enabled=false
+proxy_mode=false
 
 if [ `id -u` = 0 ]; then
 	root=/var/www
@@ -14,23 +15,26 @@ else
 fi
 
 usage() {
-	echo "usage: ${0##*/} [-v] [-a authfile] [-d rootdir] [-p port]" >&2
+	echo "usage: ${0##*/} [-v] [-a authfile] [-d rootdir] [-p port] [-r uri]" >&2
 	exit 1
 }
 
-while getopts "a:d:p:v" OPT; do case $OPT in
-	a)      auth_file=$OPTARG; auth_enabled=true;;
+while getopts "a:d:p:vr:" OPT; do case $OPT in
+	a)      authfile=$OPTARG; auth_enabled=true;;
 	d)      root=$OPTARG;;
 	p)      port=$OPTARG;;
 	v)      verbose=true;;
+	r)	uri=$OPTARG; proxy_mode=true;;
 	*)      usage;;
 esac; done
 shift $((OPTIND - 1))
 
-authfile=$(readlink -f -- "$authfile")
-if ! [ -r "$authfile" -a -f "$authfile" ]; then
-	echo "could not read file '$authfile'" >&2
-	exit 1
+if [ -n "$authfile" ]; then
+	authfile=$(readlink -f -- "$authfile")
+	if ! [ -r "$authfile" -a -f "$authfile" ]; then
+		echo "could not read file '$authfile'" >&2
+		exit 1
+	fi	
 fi
 
 $verbose && echo "root directory is $root" >&2
@@ -51,7 +55,7 @@ authenticate() {
 			$verbose && echo "logged in as $user" >&2
 			return 0
 		fi
-	done < "$auth_file"
+	done < "$authfile"
 	false
 }
 
@@ -290,6 +294,24 @@ EOF
 	printf "%s" "$body"
 }
 
+proxy() {
+	uri_port=${uri##*:}
+	if [[ x"$uri_port" = x"$uri" ]]; then
+		uri_port=80
+	fi
+	while read -p v; do
+		if [[ $v = "Host: "* ]]; then
+			printf "Host: ${uri}\r\n"
+		elif [[ $v = $(printf "\r\n") ]]; then
+			ip=$(fstat -p $ncpid | awk '$7 == "tcp" {print $11}' | sed '/^$/d')
+			printf "X-Forwarded-For: ${ip}\r\n\r\n"
+		else
+			printf "$v\n"
+		fi
+	done | nc ${uri%%:*} $uri_port >&p
+}
+			
+
 NC=nc
 if $verbose; then
 	NC="$NC -v"
@@ -302,9 +324,10 @@ while true; do
 	$NC |&
 	$verbose && echo "waiting for new connection on port $port" >&2
 	ncpid=$!
+	$proxy_mode && proxy
 	auth_passed=false
 	keep_conn=false
-	while ! $sent && read -p v1 v2 v3; do
+	while ! $proxy_mode &&  ! $sent && read -p v1 v2 v3; do
 		header=$(echo "$v1" | tr A-Z a-z)
 		if [ -z "$file" ]; then
 			# parsing first line
