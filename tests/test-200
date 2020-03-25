@@ -4,9 +4,20 @@
 . ${0%/*}/common
 
 link="/home.html"
-test ! $# -gt 0 || link=$1
+spec_port=
+while getopts "l:p:r:" OPT; do case $OPT in
+	l)	link=$OPTARG;;
+	p)	port=$OPTARG;;
+	r)	spec_port=$OPTARG;;
+esac; done
+shift $((OPTIND-1))
 
-run_shellweb
+if [ -n "$spec_port" ]; then
+	run_shellweb -p $spec_port
+	run_shellweb -p $port -r 127.0.0.1:$spec_port
+else
+	run_shellweb -p $port
+fi
 check="HTTP/1.1 200 OK"
 response=$(printf "GET $link HTTP/1.0\r\n\r\n" | \
 	 nc -w 1 127.0.0.1 $port | head -n 1 | tr -d '\r')
