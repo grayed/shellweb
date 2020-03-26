@@ -26,13 +26,13 @@ while getopts "a:d:p:v" OPT; do case $OPT in
 	*)      usage;;
 esac; done
 shift $((OPTIND - 1))
-
+if [ -n "$authfile" ]; then
 authfile=$(readlink -f -- "$authfile")
 if ! [ -r "$authfile" -a -f "$authfile" ]; then
 	echo "could not read file '$authfile'" >&2
 	exit 1
 fi
-
+fi
 $verbose && echo "root directory is $root" >&2
 
 decode_base64() {
@@ -61,20 +61,24 @@ senderr() {
 	$sent && return 0
 
 	local text
+	local v=1.0
 	case $1 in
 	400)    text="Bad request";;
 	401)    text="Unauthorized";;
 	403)    text="Not allowed";;
 	404)    text="Not found";;
+	416)	text="Range Not Satisfiable"; v=1.1;;
 	*)      text="Server error"; set -- 500;;
 	esac
 
 	sent=true
-	printf "HTTP/1.0 %s %s\r\n" "$1" "$text"
+	printf "HTTP/%s %s %s\r\n" "$v" "$1" "$text"
 	printf "Date: %s\r\n" "$(env LC_ALL=en_US.UTF-8 date)"
 	printf "Connection: close\r\n"
 	if [[ $1 == 401 ]]; then
 		printf "WWW-Authenticate: Basic realm=ShellWeb\r\n"
+	elif [[ $1 == 416 ]]; then
+		printf "Content-Range: bytes */%u\r\n" "$2"
 	fi
 
 	printf "\r\n"
@@ -110,6 +114,8 @@ validate_and_send() {
 		index "$1"
 	elif [[ "$1" == *.cgi* ]]; then
 		cgi "$1"
+	elif [[ $portion == true ]]; then
+		send_portion "$1"
 	else
 		sendfile "$1"
 	fi
@@ -177,6 +183,39 @@ sendfile() {
 	exec 3<&-
 }
 
+send_portion() {
+	$sent && return 0
+	test -d "$1" && return
+	local ct=$(file -bi "$root/$1") || { senderr 500; return 0; }
+	local sz=$(ls -l "$root/$1" | awk '{print $5}') || { senderr 500; return 0; }
+	local range_from=${range%%-*}
+	local range_to=${range##*-}
+	if [ -n "$range_from" ]; then
+		if [ -z "$range_to" ]; then
+			range_to=$(($sz - 1))
+		elif [ "$range_to" -ge "$sz" ]; then
+			range_to=$(($sz - 1))
+		fi
+	else
+		if [ -z "$range_to" ]; then
+			senderr 400
+			return 0
+		else
+			range_from=$(($sz - $range_to))
+			range_to=$(($sz - 1))
+		fi
+	fi
+	test "$range_from" -gt "$range_to" && { senderr 416 "$sz"; return 0; }
+	sent=true
+	local length=$(( $range_to - $range_from + 1))
+	printf "HTTP/1.1 206 Partial Content\r\n"
+	printf "Content-Range: bytes %s\r\n" "${range_from}-${range_to}/$sz"
+	printf "Content-Length: %u\r\n" "$length"
+	printf "Content-Type: %s\r\n" "$ct"
+	printf "\r\n"
+	dd skip="$range_from" count="$length" if="$root/$1" bs=1 status=none
+}
+	
 html_escape() {
 	echo "$*" | sed -E \
 		-e 's/&/\&amp;/g;' \
@@ -304,6 +343,8 @@ while true; do
 	ncpid=$!
 	auth_passed=false
 	keep_conn=false
+	portion=false
+	range=
 	while ! $sent && read -p v1 v2 v3; do
 		header=$(echo "$v1" | tr A-Z a-z)
 		if [ -z "$file" ]; then
@@ -340,6 +381,10 @@ while true; do
 			if $keep_conn; then
 				sent=false
 			fi
+		elif [[ $header == "range:" ]]; then
+			$verbose && echo "Range $v2 from $file requested" >&2
+			range=$(echo "${v2##bytes=}" | tr -d '\r')
+			portion=true
 		# else ignore all headers
 		fi
 	done >&p
