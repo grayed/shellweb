@@ -380,6 +380,7 @@ while true; do
 			auth_passed=false
 			if $keep_conn; then
 				sent=false
+				portion=false
 			fi
 		elif [[ $header == "range:" ]]; then
 			$verbose && echo "Range $v2 from $file requested" >&2
