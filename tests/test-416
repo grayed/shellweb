@@ -6,7 +6,7 @@
 link="./tests/home.html"
 bytes_request="25-14"
 while getopts "l:r:" OPT; do case $OPT in
-	f)	file=$OPTARG;;
+	l)	link=$OPTARG;;
 	r)	byte_request=$OPTARG;;
 esac; done
 shift $((OPTIND - 1))

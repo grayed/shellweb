@@ -26,7 +26,7 @@ check_portion() {
 
 	local request_file=$(mktemp -p $www)
 	cp "$1" "$request_file"
-	local part_file=$(mktemp -p $tmpdir) || fail "mktemp fail"
+	local part_file=$(mktemp -p $tmpdir) || { fail "mktemp fail"; return 0; }
 	dd skip="$first_byte" count="$length" if="$1" bs=1 status=none > "$part_file" || { fail "incorrect range"; return 0; }
 	local response=$(mktemp -p $tmpdir)
 	{ printf "GET ${request_file#$www} HTTP/1.1\r\n"
