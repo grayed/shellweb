@@ -26,7 +26,6 @@ while getopts "a:d:p:v" OPT; do case $OPT in
 	*)      usage;;
 esac; done
 shift $((OPTIND - 1))
-
 authfile=$(readlink -f -- "$authfile")
 if ! [ -r "$authfile" -a -f "$authfile" ]; then
 	echo "could not read file '$authfile'" >&2
@@ -378,9 +377,9 @@ while true; do
 			fi
 			file=
 			auth_passed=false
+			portion=false
 			if $keep_conn; then
 				sent=false
-				portion=false
 			fi
 		elif [[ $header == "range:" ]]; then
 			$verbose && echo "Range $v2 from $file requested" >&2

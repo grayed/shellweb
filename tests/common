@@ -6,7 +6,8 @@ workdir="$PWD"
 tmpdir=$(mktemp -d -p $workdir)
 
 port=13245
-www=$(mkdir -d -p $tmpdir)
+mkdir -p ${tmpdir}/www
+www="${tmpdir}/www"
 shellweb_cmd="${workdir}/shellweb -d $www -p $port"
 
 test_name=${0##*/test-}
@@ -37,7 +38,11 @@ fail() {
 finish() {
 	kill_shellweb || true
 	cleanup || true
-	test $failed -gt 0 || echo "$test_name ==> OK" 
+	if [ "$failed" -gt 0 ]; then
+		echo "$test_name ==> FAIL"
+	else
+		echo "$test_name ==> OK"
+	fi
 }
 
 trap 'finish' EXIT

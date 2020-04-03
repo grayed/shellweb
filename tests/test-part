@@ -1,0 +1,59 @@
+#!/bin/ksh
+
+. ${0%/*}/common
+check_portion() {
+	local first_byte="${2%%-*}"
+	local last_byte="${2##*-}"
+	local sz=$(ls -l "$1" | awk '{print $5}')
+	local length
+
+	if [ -n "$first_byte" ]; then
+		if [ -z "$last_byte" ]; then
+			last_byte=$(($sz - 1))
+		elif [ "$last_byte" -ge "$sz" ]; then
+			last_byte=$(($sz - 1))
+		fi
+	else
+		if [ -z "$last_byte" ]; then
+			echo "Incorrect request"
+			return 0
+		else
+			first_byte=$(($sz - $last_byte))
+			last_byte=$(($sz - 1))
+		fi
+	fi
+	length=$(($last_byte - $first_byte + 1))
+
+	local request_file=$(mktemp -p $www)
+	cp "$1" "$request_file"
+	local part_file=$(mktemp -p $tmpdir) || fail "mktemp fail"
+	dd skip="$first_byte" count="$length" if="$1" bs=1 status=none > "$part_file" || { fail "incorrect range"; return 0; }
+	local response=$(mktemp -p $tmpdir)
+	{ printf "GET ${request_file#$www} HTTP/1.1\r\n"
+	  printf "Range: bytes=$2\r\n\r\n"
+	} | nc -w 1 127.0.0.1 $port | tr -d '\r' >> "$response"
+	local first_header=$(head -n 1 $response)
+	local check="HTTP/1.1 206 Partial Content"
+	test x"$first_header" = x"$check" || { fail "incorrect response header"; return 0; }
+	response_range=$(awk '/Content-Range:/{print $NF}' "$response")
+	test "${response_range%%/*}" = "${first_byte}-${last_byte}" || { fail "incorrect range"; return 0; }
+	sed -i '1,/^$/ d' "$response"
+	cmp -s "$part_file" "$response" || { fail "files don't match"; return 0; }
+	echo "Requested $2 bytes of $file: success"
+}
+
+
+file="./tests/home.html"
+byte_request="25-30 26- -35"
+
+while getopts "f:r:" OPT; do case $OPT in
+	f)	file=$OPTARG;;
+	r)	byte_request="$OPTARG";;
+esac; done
+shift $((OPTIND - 1))
+
+run_shellweb
+for t in $byte_request; do
+	echo "Bytes from $file requested: $t"
+	check_portion "$file" $t || fail 
+done
