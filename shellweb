@@ -4,6 +4,7 @@ set -e
 
 verbose=false
 auth_enabled=false
+proxy_mode=false
 
 if [ `id -u` = 0 ]; then
 	root=/var/www
@@ -14,15 +15,16 @@ else
 fi
 
 usage() {
-	echo "usage: ${0##*/} [-v] [-a authfile] [-d rootdir] [-p port]" >&2
+	echo "usage: ${0##*/} [-v] [-a authfile] [-d rootdir] [-p port] [-r proxy_spec]" >&2
 	exit 1
 }
 
-while getopts "a:d:p:v" OPT; do case $OPT in
+while getopts "a:d:p:r:v" OPT; do case $OPT in
 	a)      auth_file=$OPTARG; auth_enabled=true;;
 	d)      root=$OPTARG;;
 	p)      port=$OPTARG;;
 	v)      verbose=true;;
+	r)	proxy_spec=$OPTARG; proxy_mode=true;;
 	*)      usage;;
 esac; done
 shift $((OPTIND - 1))
@@ -328,6 +330,24 @@ EOF
 	printf "%s" "$body"
 }
 
+proxy() {
+	proxy_port=${proxy_spec##*:}
+	if [[ x"$proxy_port" = x"$proxy_spec" ]]; then
+		proxy_port=80
+	fi
+	while read -p -r v; do
+		if [[ $v = "Host: "* ]]; then
+			printf "Host: ${proxy_spec}\r\n"
+		elif [[ $v = $(printf "\r\n") ]]; then
+			ip=$(fstat -p $ncpid | awk '$7 == "tcp" {print $11}' | sed '/^$/d')
+			printf "X-Forwarded-For: ${ip}\r\n\r\n"
+		else
+			printf "$v\n"
+		fi
+	done | nc ${proxy_spec%%:*} $proxy_port >&p
+}
+			
+
 NC=nc
 if $verbose; then
 	NC="$NC -v"
@@ -340,11 +360,12 @@ while true; do
 	$NC |&
 	$verbose && echo "waiting for new connection on port $port" >&2
 	ncpid=$!
+	$proxy_mode && proxy
 	auth_passed=false
 	keep_conn=false
 	portion=false
 	range=
-	while ! $sent && read -p v1 v2 v3; do
+	while ! $proxy_mode &&  ! $sent && read -p v1 v2 v3; do
 		header=$(echo "$v1" | tr A-Z a-z)
 		if [ -z "$file" ]; then
 			# parsing first line

@@ -13,7 +13,7 @@ shellweb_cmd="${workdir}/shellweb -d $www -p $port"
 test_name=${0##*/test-}
 
 run_shellweb(){
-	$shellweb_cmd &
+	$shellweb_cmd "$@" &
 	sleep 1
 	
 }
