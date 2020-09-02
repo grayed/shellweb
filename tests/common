@@ -29,7 +29,7 @@ cleanup() {
 fail() {
 	for msg in "$@"; do
 		failed=1
-		echo "FAIL in $test_name $msg"
+		echo FAIL "$msg"
 	done
 	return 1
 }
@@ -37,9 +37,9 @@ fail() {
 finish() {
 	kill_shellweb || true
 	cleanup || true
-	test $failed -gt 0 || echo "$test_name ==> OK" 
+	test $failed -gt 0 || echo OK
 }
 
 trap 'finish' EXIT
 
-echo "test: $test_name"
+echo "==> test $test_name"
