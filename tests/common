@@ -1,4 +1,3 @@
-#!/bin/ksh
 set -e 
 failed=0
 
