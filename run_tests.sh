@@ -7,6 +7,6 @@ fi
 
 okay=true
 for t in $tests; do
-	ksh "tests/test-${t}" || okay=false
+	ksh -x "tests/test-${t}" || okay=false
 done
 $okay
