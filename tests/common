@@ -3,7 +3,7 @@ set -e
 failed=0
 
 workdir="$PWD"
-tmpdir=$(mktemp -d -p $workdir)
+tmpdir=$(TMPDIR="$workdir" mktemp -d)
 
 port=13245
 mkdir -p ${tmpdir}/www 

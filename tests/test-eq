@@ -22,9 +22,9 @@ else
 	run_shellweb -p $port
 fi
 
-request=$(mktemp -p $www request.XXXXXX)
+request=$(TMPDIR="$www" mktemp request.XXXXXX)
 cp "$file" "$request"
-response=$(mktemp -p $tmpdir response.XXXXXX)
+response=$(TMPDIR="$tmpdir" mktemp response.XXXXXX)
 send="${request#$www}"
 printf "GET $send HTTP/1.0\r\n\r\n" | \
 	nc -w 1 127.0.0.1 $port | tr -d '\r'  >> "$response" 
