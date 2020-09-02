@@ -4,27 +4,12 @@
 . ${0%/*}/common
 
 file="./tests/home.html"
-link="/home.html"
-spec_port=
-while getopts "l:p:r:f:" OPT; do case $OPT in
-	l)	link=$OPTARG;;
-	p)	port=$OPTARG;;
-	r)	spec_port=$OPTARG;;
-	f)	file=$OPTARG;;
-esac; done
-shift $((OPTIND-1))
-
+test ! $# -gt 0 || file="$1"
 test -f "$file" || fail "$file is incorrect"
-if [ -n "$spec_port" ]; then
-	run_shellweb -p $spec_port
-	run_shellweb -p $port -r 127.0.0.1:$spec_port
-else
-	run_shellweb -p $port
-fi
-
-request=$(TMPDIR="$www" mktemp request.XXXXXX)
+run_shellweb 
+request=$(TMPDIR="$www" mktemp request.XXXXXXXX)
 cp "$file" "$request"
-response=$(TMPDIR="$tmpdir" mktemp response.XXXXXX)
+response=$(TMPDIR="$tmpdir" mktemp response.XXXXXXXX)
 send="${request#$www}"
 printf "GET $send HTTP/1.0\r\n\r\n" | \
 	nc -w 1 127.0.0.1 $port | tr -d '\r'  >> "$response" 
