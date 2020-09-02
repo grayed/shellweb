@@ -5,7 +5,9 @@ else
 	tests=$(ls tests/test-* | sed 's,tests/test-,,' | sort -R) 
 fi
 
+okay=true
 for t in $tests; do
-	ksh "tests/test-${t}"
+	ksh "tests/test-${t}" || okay=false
 	echo
 done
+$okay
