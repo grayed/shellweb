@@ -6,7 +6,8 @@ workdir="$PWD"
 tmpdir=$(TMPDIR="$workdir" mktemp -d)
 
 port=13245
-www=$(mkdir -d -p $tmpdir)
+www="$tmpdir/www"
+mkdir "$www"
 shellweb_cmd="${workdir}/shellweb -d $www -p $port"
 
 test_name=${0##*/test-}
