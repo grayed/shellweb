@@ -50,7 +50,7 @@ decode_base64() {
 }
 
 authenticate() {
-	local decoded user password
+	typeset decoded user password
 
 	decoded="$(decode_base64 "$1")"
 	user="$(printf "%s\n" "$decoded" | cut -f1 -d:)"
@@ -70,7 +70,7 @@ authenticate() {
 senderr() {
 	$sent && return 0
 
-	local text
+	typeset text
 	case $1 in
 	400)    text="Bad request";;
 	401)    text="Unauthorized";;
@@ -98,7 +98,7 @@ validate_and_send() {
 		return
 	fi
 
-	local path="${root}$1"
+	typeset path="${root}$1"
 	if [ -h "$path" ]; then
 		sym_link "$path"
 		return
@@ -126,7 +126,7 @@ validate_and_send() {
 }
 
 sym_link() {
-	local path=$(readlink -f "$1" || true)
+	typeset path=$(readlink -f "$1" || true)
 	if [ "x${path#$root}" = "x${path}" ]; then
 		senderr 404
 		return
@@ -175,8 +175,8 @@ sendfile() {
 	$sent && return 0
 	test -d "$1" && return 
 	exec 3<"$root/$1" || { senderr 500; return 0; }
-	local ct=$(file -bi "$root/$1") || { senderr 500; return 0; }
-	local sz=$(ls -l "$root/$1" | awk '{print $5}') || { senderr 500; return 0; }
+	typeset ct=$(file -bi "$root/$1") || { senderr 500; return 0; }
+	typeset sz=$(ls -l "$root/$1" | awk '{print $5}') || { senderr 500; return 0; }
 	sent=true
 	printf "HTTP/1.1 200 OK\r\n"
 	printf "Content-Type: %s\r\n"	"$ct"
@@ -210,7 +210,7 @@ html_link() {
 }
 
 format_file_size() {
-	local sz=$1
+	typeset sz=$1
 	  if [ "$sz" -ge $((1024 * 1024 * 1024 * 1024 * 10)) ]; then
 		sz="$((sz / (1024 * 1024 * 1024 * 1024) ))</td><td>TB"
 	elif [ "$sz" -ge $((1024 * 1024 * 1024 * 10)) ]; then
@@ -226,7 +226,7 @@ format_file_size() {
 }
 
 file_info() {
-	local fname="$1" date="$2" size="$3" type="$4"
+	typeset fname="$1" date="$2" size="$3" type="$4"
 
 	case $type in
 	block|char|pipe|socket)	return;;
@@ -274,8 +274,8 @@ EOF
 			test -n "$parent" || parent=/
 			echo "<a href=\"$parent\">../</a><br />"
 		fi
-		local mode links owner group size mon day time year name
-		local type
+		typeset mode links owner group size mon day time year name
+		typeset type
 		ls -lT "$root$1" | tail -n +2 | while read mode links owner group size mon day time year name; do
 			  if [ "${mode#-}" != "$mode" ]; then	type=file
 			elif [ "${mode#b}" != "$mode" ]; then	type=block
