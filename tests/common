@@ -1,6 +1,8 @@
 set -e 
 failed=0
 
+nc=$(command -v nc.openbsd || command -v nc || { echo nc not found; exit 1; })
+
 workdir="$PWD"
 tmpdir=$(TMPDIR="$workdir" mktemp -d)
 
@@ -19,7 +21,7 @@ run_shellweb(){
 
 kill_shellweb() {
 	pkill -u $(id -u) -f "$shellweb_cmd"
-	pkill -u $(id -u) -x nc
+	pkill -u $(id -u) -x ${nc##*/}
 }
 
 cleanup() {

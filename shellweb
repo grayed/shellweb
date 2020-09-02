@@ -5,6 +5,7 @@ set -e
 verbose=false
 auth_enabled=false
 proxy_mode=false
+nc=$(command -v nc.openbsd || command -v nc || { echo nc not found; exit 1; })
 
 if [ `id -u` = 0 ]; then
 	root=/var/www
@@ -313,20 +314,20 @@ proxy() {
 		else
 			printf "$v\n"
 		fi
-	done | nc ${proxy_spec%%:*} $proxy_port >&p
+	done | $nc ${proxy_spec%%:*} $proxy_port >&p
 }
 			
 
-NC=nc
+NC_SERVER=$nc
 if $verbose; then
-	NC="$NC -v"
+	NC_SERVER="$NC_SERVER -v"
 fi
-NC="$NC -kl $port"
+NC_SERVER="$NC_SERVER -kl $port"
 
 while true; do
 	file=
 	sent=false
-	$NC |&
+	$NC_SERVER |&
 	$verbose && echo "waiting for new connection on port $port" >&2
 	ncpid=$!
 	$proxy_mode && proxy

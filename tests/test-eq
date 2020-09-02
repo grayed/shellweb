@@ -21,7 +21,7 @@ EOF
 run_shellweb 
 
 printf "GET $path HTTP/1.0\r\n\r\n" | \
-	nc -w 1 127.0.0.1 $port | tr -d '\r' >$response
+	$nc -w 1 127.0.0.1 $port | tr -d '\r' >$response
 
 firstline=$(head -n 1 "$response")
 check="HTTP/1.1 200 OK"
