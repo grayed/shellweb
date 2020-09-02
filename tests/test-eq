@@ -27,5 +27,4 @@ firstline=$(head -n 1 "$response")
 check="HTTP/1.1 200 OK"
 test x"$firstline" = x"$check" || fail "expected: '$check'; got: '$firstline'"
 sed -i '1,/^$/ d' "$response"
-diff -u "$source" "$response" >$difference
-! test -s "$difference" || { fail "response didn't match source file"; cat "$difference"; }
+diff -u "$source" "$response" >$difference || { fail "response didn't match source file"; cat "$difference"; }
