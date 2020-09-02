@@ -8,6 +8,5 @@ fi
 okay=true
 for t in $tests; do
 	ksh "tests/test-${t}" || okay=false
-	echo
 done
 $okay
