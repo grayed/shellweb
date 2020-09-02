@@ -28,13 +28,21 @@ while getopts "a:d:p:r:v" OPT; do case $OPT in
 	*)      usage;;
 esac; done
 shift $((OPTIND - 1))
-authfile=$(readlink -f -- "$authfile")
-if ! [ -r "$authfile" -a -f "$authfile" ]; then
-	echo "could not read file '$authfile'" >&2
-	exit 1
+
+if $auth_enabled; then
+	authfile=$(readlink -f -- "$authfile")
+	if ! [ -r "$authfile" -a -f "$authfile" ]; then
+		echo "could not read file '$authfile'" >&2
+		exit 1
+	fi
 fi
 
-$verbose && echo "root directory is $root" >&2
+if $verbose; then
+	echo "root directory is $root" >&2
+else
+	rl=$(command -v readlink)
+	readlink() { $rl 2>/dev/null "$@"; }
+fi
 
 decode_base64() {
 	printf "%s\n" "$1" | openssl enc -base64 -d

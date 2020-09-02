@@ -3,33 +3,29 @@
 
 . ${0%/*}/common
 
-file="./tests/home.html"
-link="/home.html"
-spec_port=
-while getopts "l:p:r:f:" OPT; do case $OPT in
-	l)	link=$OPTARG;;
-	p)	port=$OPTARG;;
-	r)	spec_port=$OPTARG;;
-	f)	file=$OPTARG;;
-esac; done
-shift $((OPTIND-1))
+path="/test.txt"
+source="${www}/${path}"
+response="${tmpdir}/response"
+difference="${tmpdir}/diff"
 
-test -f "$file" || fail "$file is incorrect"
-if [ -n "$spec_port" ]; then
-	run_shellweb -p $spec_port
-	run_shellweb -p $port -r 127.0.0.1:$spec_port
-else
-	run_shellweb -p $port
-fi
+cat >$source <<EOF
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint
+occaecat cupidatat non proident, sunt in culpa qui officia deserunt
+mollit anim id est laborum.
+EOF
 
-request=$(mktemp -p $www request.XXXXXX)
-cp "$file" "$request"
-response=$(mktemp -p $tmpdir response.XXXXXX)
-send="${request#$www}"
-printf "GET $send HTTP/1.0\r\n\r\n" | \
-	nc -w 1 127.0.0.1 $port | tr -d '\r'  >> "$response" 
-header=$(head -n 1 $response)
+run_shellweb 
+
+printf "GET $path HTTP/1.0\r\n\r\n" | \
+	nc -w 1 127.0.0.1 $port | tr -d '\r' >$response
+
+firstline=$(head -n 1 "$response")
 check="HTTP/1.1 200 OK"
-test x"$header" = x"$check" || fail "$header"
+test x"$firstline" = x"$check" || fail "expected: '$check'; got: '$firstline'"
 sed -i '1,/^$/ d' "$response"
-cmp -s "$request" "$response" || fail "files don't match"
+diff -u "$source" "$response" >$difference
+! test -s "$difference" || { fail "response didn't match source file"; cat "$difference"; }
