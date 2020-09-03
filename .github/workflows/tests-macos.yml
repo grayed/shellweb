@@ -13,5 +13,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: pre-test
+      run: |
+        set -x
+        echo one
+        nc -l 13579 >foo &
+        nc -w 5 -z 127.0.0.1 13579
+        nc -l 13578 >moo &
+        date | nc -w 5 127.0.0.1 13578 &
+        sleep 5
+        kill $!
+        cat moo
     - name: run tests
       run: sh ./run_tests.sh
