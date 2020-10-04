@@ -313,11 +313,11 @@ EOF
 
 proxy() {
 	proxy_port=${proxy_spec##*:}
-	if [[ x"$proxy_port" = x"$proxy_spec" ]]; then
+	if [[ $proxy_port = "$proxy_spec" ]]; then
 		proxy_port=80
 	fi
 	while read -p -r v; do
-		if [[ $v = "Host: "* ]]; then
+		if [[ $(printf %s "$v" | tr A-Z a-z) = "host:"* ]]; then
 			printf "Host: ${proxy_spec}\r\n"
 		elif [[ $v = $(printf "\r\n") ]]; then
 			ip=$(fstat -p $ncpid | awk '$7 == "tcp" {print $11}' | sed '/^$/d')
