@@ -349,9 +349,9 @@ while true; do
 		if [ -z "$file" ]; then
 			# parsing first line
 			file=$v2
-			[[ $v1 = GET ]] || senderr 400
-			[[ $v3 = $(printf "HTTP/1.[01]\r") ]] || senderr 400
-			[[ $v3 = HTTP/1.1? ]] && keep_conn=true
+			[[ $v1 == GET ]] || senderr 400
+			[[ $v3 == HTTP/1.0* ]] || [[ $v3 == HTTP/1.1* ]] || senderr 400
+			[[ $v3 == HTTP/1.1* ]] && keep_conn=true
 
 		# authentication handling
 		elif $auth_enabled && [[ $header == "authorization:" ]]; then
