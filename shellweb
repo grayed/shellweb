@@ -32,7 +32,7 @@ shift $((OPTIND - 1))
 
 # readlink -f is not portable (at least macOS lacks it), so do our best
 rl_path=$(command -v readlink)
-rl_can_f=$(readlink -f / 2>/dev/null && echo true || echo false)
+rl_can_f=$(readlink -f / >/dev/null 2>&1 && echo true || echo false)
 if $verbose; then
 	echo "root directory is $root" >&2
 	if $rl_can_f; then
