@@ -13,5 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: install ksh
+      run: brew install ksh
     - name: run tests
       run: sh ./run_tests.sh
