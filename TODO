@@ -2,7 +2,7 @@
   * Content-Range support
   * Better error pages, CSS?
   * Reverse proxy mode
-  * If-Mofified-Since support
+  * If-Modified-Since support
   * Content-Disposition
   * config file
   * manpage
