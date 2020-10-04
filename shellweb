@@ -30,19 +30,30 @@ while getopts "a:d:p:r:v" OPT; do case $OPT in
 esac; done
 shift $((OPTIND - 1))
 
+# readlink -f is not portable (at least macOS lacks it), so do our best
+rl_path=$(command -v readlink)
+rl_can_f=$(readlink -f / 2>/dev/null && echo true || echo false)
+if $verbose; then
+	echo "root directory is $root" >&2
+	if $rl_can_f; then
+		rl() { "$rl_path" -f -- "$1"; }
+	else
+		rl() { "$rl_path" -- "$1" || printf %s "$1"; }
+	fi
+else
+	if $rl_can_f; then
+		rl() { "$rl_path" -f -- "$1" 2>/dev/null; }
+	else
+		rl() { "$rl_path" -- "$1" 2>/dev/null || printf %s "$1"; }
+	fi
+fi
+
 if $auth_enabled; then
-	authfile=$(readlink -f -- "$authfile")
+	authfile=$(rl "$authfile")
 	if ! [ -r "$authfile" -a -f "$authfile" ]; then
 		echo "could not read file '$authfile'" >&2
 		exit 1
 	fi
-fi
-
-if $verbose; then
-	echo "root directory is $root" >&2
-else
-	rl=$(command -v readlink)
-	readlink() { $rl 2>/dev/null "$@"; }
 fi
 
 decode_base64() {
@@ -104,7 +115,7 @@ validate_and_send() {
 		return
 	fi
 
-	path=$(readlink -f "$path" || true)
+	path=$(rl "$path" || true)
 	  if [ -z "$path" ]; then
 		# hard symlink error: cycle or smth. like that
 		senderr 404
@@ -126,7 +137,7 @@ validate_and_send() {
 }
 
 sym_link() {
-	typeset path=$(readlink -f "$1" || true)
+	typeset path=$(rl "$1" || true)
 	if [ "x${path#$root}" = "x${path}" ]; then
 		senderr 404
 		return
