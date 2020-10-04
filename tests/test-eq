@@ -20,7 +20,7 @@ EOF
 
 run_shellweb 
 
-printf "GET $path HTTP/1.0\r\n\r\n" | \
+{ printf "GET $path HTTP/1.0\r\n\r\n"; sleep 1; } | \
 	$nc -w 5 127.0.0.1 $port | tr -d '\r' >$response
 
 firstline=$(head -n 1 "$response")

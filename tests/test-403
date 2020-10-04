@@ -10,6 +10,6 @@ chmod 000 "${www}${path}"
 run_shellweb
 
 check="HTTP/1.0 403 Not allowed" 
-response=$(printf "GET $path HTTP/1.0\r\n\r\n" | \
+response=$( { printf "GET $path HTTP/1.0\r\n\r\n"; sleep 1; } | \
 	 $nc -w 5 127.0.0.1 $port | head -n 1 | tr -d '\r')
 test x"$response" = x"$check" || fail "expected: '$check'; got: '$response'"
