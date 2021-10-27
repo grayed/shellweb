@@ -76,6 +76,24 @@ authenticate() {
 	false
 }
 
+error_page_base="HTML&CSS/err"
+
+generate_error_page() {
+  error_page="${error_page_base}${1}.html"
+  if [ ! -e "$error_page" ]; then
+    echo | cat "HTML&CSS/template.html" > "$error_page"
+    sed -i -e "s/error_code_text/$1 $2/g" "$error_page"
+    sed -i -e "s/error_code/$1/g" "$error_page"
+  fi
+}
+
+open_error_page() {
+  error_page="${error_page_base}${1}.html"
+  case $(uname) in
+  *Darwin*) open "$error_page";;
+  *) xdg-open "$error_page" ;;
+  esac
+}
 
 # It's okay to call this routine multiple times, see $sent
 senderr() {
@@ -89,6 +107,9 @@ senderr() {
 	404)    text="Not found";;
 	*)      text="Server error"; set -- 500;;
 	esac
+
+	generate_error_page "$1" "$text"
+	open_error_page "$1"
 
 	sent=true
 	printf "HTTP/1.0 %s %s\r\n" "$1" "$text"
