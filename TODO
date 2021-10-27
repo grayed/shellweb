@@ -1,6 +1,5 @@
   * More unit tests
   * Content-Range support
-  * Better error pages, CSS?
   * Reverse proxy mode
   * If-Modified-Since support
   * Content-Disposition
