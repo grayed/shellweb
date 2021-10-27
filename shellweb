@@ -83,7 +83,7 @@ generate_error_page() {
   if [ ! -e "$error_page" ]; then
     sed -e "s/error_code_text/$1 $2/g; s/error_code/$1/g" "HTML&CSS/template.html" >"$error_page"
   fi
-  printf "error page: %s" "$error_page"
+  $verbose && printf "error page: %s\n" "$error_page" >&2
 }
 
 # It's okay to call this routine multiple times, see $sent
