@@ -81,8 +81,7 @@ error_page_base="HTML&CSS/err"
 generate_error_page() {
   error_page="${error_page_base}${1}.html"
   if [ ! -e "$error_page" ]; then
-    cat "HTML&CSS/template.html" > "$error_page";  sed -i.bak -e "s/error_code_text/$1 $2/g; s/error_code/$1/g" "$error_page"
-    rm  "${error_page}.bak"
+    sed -e "s/error_code_text/$1 $2/g; s/error_code/$1/g" "HTML&CSS/template.html" >"$error_page"
   fi
   printf "error page: %s" "$error_page"
 }
