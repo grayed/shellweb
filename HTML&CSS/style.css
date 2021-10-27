@@ -1,0 +1,56 @@
+#rectangles {
+    width: 50vw;
+    height:60vh;
+    margin: auto;
+    margin-top: 5vh;
+    display:run-in;
+    justify-content: center;
+    
+}
+
+#rectangle1 {
+    width: 50vw;
+    height:40vh;
+    background: rgb(7,65,158);
+    background: linear-gradient(90deg, rgba(7,65,158, 1) 0%, rgb(0, 255, 255, 1) 100%);
+    border-radius: 3vh;
+    box-shadow: rgba(0, 0, 0, 0.12) 0px -12px 10px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-family: 'Bebas Neue', cursive;
+    color: rgb(246, 250, 253);
+    font-size: 8vw;
+
+    animation-name: text-appear;
+    animation-duration: 2s;
+}
+
+#rectangle2 {
+    width: 50vw;
+    height:8vh;
+    background: rgb(180, 222, 233);
+    border-radius: 3vh;
+    box-shadow: rgba(0, 0, 0, 0.12) 0px -12px 10px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 3vh;
+
+    font-family:Arial, Helvetica, sans-serif;
+    font-style: italic;
+    color: rgb(246, 250, 253);
+    font-size: 3.5vmin;
+    border: none;
+
+    animation-name: text-appear;
+    animation-duration: 2s;
+}
+
+@keyframes text-appear{
+    from {opacity: 0%;}
+    to {opacity: 100%;}
+}
