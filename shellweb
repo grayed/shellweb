@@ -81,19 +81,10 @@ error_page_base="HTML&CSS/err"
 generate_error_page() {
   error_page="${error_page_base}${1}.html"
   if [ ! -e "$error_page" ]; then
-    echo | cat "HTML&CSS/template.html" > "$error_page"
-    sed -i.bak -e "s/error_code_text/$1 $2/g" "$error_page" 
-    sed -i.bak -e "s/error_code/$1/g" "$error_page"
+    cat "HTML&CSS/template.html" > "$error_page";  sed -i.bak -e "s/error_code_text/$1 $2/g; s/error_code/$1/g" "$error_page"
     rm  "${error_page}.bak"
   fi
-}
-
-open_error_page() {
-  error_page="${error_page_base}${1}.html"
-  case $(uname) in
-  *Darwin*) open "$error_page";;
-  *) xdg-open "$error_page" ;;
-  esac
+  printf "error page: %s" "$error_page"
 }
 
 # It's okay to call this routine multiple times, see $sent
@@ -109,9 +100,6 @@ senderr() {
 	*)      text="Server error"; set -- 500;;
 	esac
 
-	generate_error_page "$1" "$text"
-	open_error_page "$1"
-
 	sent=true
 	printf "HTTP/1.0 %s %s\r\n" "$1" "$text"
 	printf "Date: %s\r\n" "$(env LC_ALL=en_US.UTF-8 date)"
@@ -119,8 +107,9 @@ senderr() {
 	if [[ $1 == 401 ]]; then
 		printf "WWW-Authenticate: Basic realm=ShellWeb\r\n"
 	fi
-
 	printf "\r\n"
+
+	generate_error_page "$1" "$text"
 
 	keep_conn=false
 }
