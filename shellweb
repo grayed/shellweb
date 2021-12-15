@@ -5,6 +5,7 @@ set -e
 verbose=false
 auth_enabled=false
 proxy_mode=false
+content_range=(false 0 0 0)
 nc=$(command -v nc.openbsd || command -v nc || { echo nc not found; exit 1; })
 
 if [ `id -u` = 0 ]; then
@@ -203,6 +204,10 @@ sendfile() {
 	printf "Content-Type: %s\r\n"	"$ct"
 	printf "Content-Length: %u\r\n"	"$sz"
 	printf "Date: %s\r\n"		"$(env LC_ALL=en_US.UTF-8 date)"
+	if [[ ${content_range[0]} == 'true' ]]; then
+		printf "Content-Range: ${content_range[1]}-${content_range[2]}/${content_range[3]}\r\n"
+		printf "$(cat $root/tmp.txt)"
+	fi
 	printf "\r\n"
 	cat <&3
 	exec 3<&-
@@ -337,6 +342,21 @@ proxy() {
 		fi
 	done | $nc ${proxy_spec%%:*} $proxy_port >&p
 }
+
+range_handle() {
+	touch "$root/tmp.txt"
+
+	content_range[0]='true'
+	content_range[1]=$start
+	content_range[2]=$end
+	content_range[3]=$(stat --printf="%s" $(pwd)/file_with_data.txt)
+
+	if [[ "$1" -ge 0 && "$2" -le ${content_range[3]} ]]; then
+		dd if="$(pwd)/file_with_data.txt" of="$root/tmp.txt" ibs=1 skip=$1 count=$2 2> /dev/null
+	else
+		senderr 400
+	fi
+}
 			
 
 NC_SERVER=$nc
@@ -371,6 +391,11 @@ while true; do
 
 		elif [[ $header == "connection:" && $v2 == $(printf "close\r") ]]; then
 			keep_conn=false
+		
+		elif [[ $header == "range:" ]]; then
+			start=$(echo "$v3" | awk -F '-' '{print $1}')
+			end=$(echo "$v3" | awk -F '-' '{print $2}' | sed 's/[^0-9]*//g')
+			range_handle "$start" "$end" || senderr 400
 
 		elif [[ $header = $(printf "\r\n") && -z $v2 ]]; then
 			# empty line (end of headers)
