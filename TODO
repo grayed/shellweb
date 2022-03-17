@@ -1,5 +1,4 @@
   * More unit tests
-  * Content-Range support
   * Reverse proxy mode
   * If-Modified-Since support
   * Content-Disposition
