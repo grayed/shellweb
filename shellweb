@@ -195,7 +195,7 @@ cgi() {
 # It's okay to call this routine even after senderr(), see $sent
 sendfile() {
 	if [[ ${content_range[0]} == 'true' ]]; then
-		range_handle_verify
+		range_handle_verify "$root/$1"
 	fi
 	$sent && return 0
 	test -d "$1" && return 
@@ -349,7 +349,7 @@ proxy() {
 }
 
 range_handle_verify() {
-	content_range[3]=$(stat --printf="%s" "$root/$file")
+	content_range[3]=$(stat --printf="%s" "$1")
 	if [[ ${content_range[3]} -ne 0 && ${content_range[1]} -ge 0 && ${content_range[2]} -le ${content_range[3]} ]]; then
 		return 0
 	else
