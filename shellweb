@@ -194,6 +194,9 @@ cgi() {
 
 # It's okay to call this routine even after senderr(), see $sent
 sendfile() {
+	if [[ ${content_range[0]} == 'true' ]]; then
+		range_handle_verify
+	fi
 	$sent && return 0
 	test -d "$1" && return 
 	exec 3<"$root/$1" || { senderr 500; return 0; }
@@ -205,12 +208,14 @@ sendfile() {
 	printf "Content-Length: %u\r\n"	"$sz"
 	printf "Date: %s\r\n"		"$(env LC_ALL=en_US.UTF-8 date)"
 	if [[ ${content_range[0]} == 'true' ]]; then
-		printf "Content-Range: ${content_range[1]}-${content_range[2]}/${content_range[3]}\r\n"
-		printf "$(cat $root/tmp.txt)"
+		printf "Content-Range: bytes ${content_range[1]}-${content_range[2]}/${content_range[3]}\r\n"
+		printf "\r\n"
+		range_sendfile "$root/$1"
+	else
+		printf "\r\n"
+		cat <&3
+		exec 3<&-
 	fi
-	printf "\r\n"
-	cat <&3
-	exec 3<&-
 }
 
 html_escape() {
@@ -343,21 +348,18 @@ proxy() {
 	done | $nc ${proxy_spec%%:*} $proxy_port >&p
 }
 
-range_handle() {
-	touch "$root/tmp.txt"
-
-	content_range[0]='true'
-	content_range[1]=$start
-	content_range[2]=$end
-	content_range[3]=$(stat --printf="%s" $(pwd)/file_with_data.txt)
-
-	if [[ "$1" -ge 0 && "$2" -le ${content_range[3]} ]]; then
-		dd if="$(pwd)/file_with_data.txt" of="$root/tmp.txt" ibs=1 skip=$1 count=$2 2> /dev/null
+range_handle_verify() {
+	content_range[3]=$(stat --printf="%s" "$root/$file")
+	if [[ ${content_range[3]} -ne 0 && ${content_range[1]} -ge 0 && ${content_range[2]} -le ${content_range[3]} ]]; then
+		return 0
 	else
 		senderr 400
 	fi
 }
-			
+
+range_sendfile() {
+	dd if="$root/$file" ibs=1 skip=${content_range[1]} count=${content_range[2]} 2> /dev/null
+}
 
 NC_SERVER=$nc
 if $verbose; then
@@ -393,9 +395,9 @@ while true; do
 			keep_conn=false
 		
 		elif [[ $header == "range:" ]]; then
-			start=$(echo "$v3" | awk -F '-' '{print $1}')
-			end=$(echo "$v3" | awk -F '-' '{print $2}' | sed 's/[^0-9]*//g')
-			range_handle "$start" "$end" || senderr 400
+			content_range[0]='true'
+			content_range[1]=$(echo "$v3" | awk -F '-' '{print $1}')
+			content_range[2]=$(echo "$v3" | awk -F '-' '{print $2}' | sed 's/[^0-9]*//g')
 
 		elif [[ $header = $(printf "\r\n") && -z $v2 ]]; then
 			# empty line (end of headers)
